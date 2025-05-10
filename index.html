@@ -1,14 +1,14 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <title>ESP32 Setup + Control</title>
   <style>
-    body { font-family: sans-serif; padding: 2rem; text-align: center; }
-    input { padding: 0.5rem; margin: 0.5rem; width: 200px; }
-    button { padding: 0.5rem 1rem; font-size: 1rem; }
-    #photo { margin-top: 2rem; max-width: 100%; }
+    body { font-family: sans-serif; padding: 2rem; text-align: center; background: #f8f9fa; color: #333; }
+    input { padding: 0.5rem; margin: 0.5rem; width: 220px; border: 1px solid #ccc; border-radius: 4px; }
+    button { padding: 0.5rem 1rem; font-size: 1rem; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+    button:hover { background: #0056b3; }
+    #photo { margin-top: 2rem; max-width: 100%; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
   </style>
 </head>
 <body>
@@ -16,13 +16,13 @@
 
   <div id="setupDiv" style="display: none;">
     <h2>Setup Wi-Fi for ESP32</h2>
-    <p>Connect to the <strong>ESP32-Setup</strong> Wi-Fi, then return to this page.</p>
+    <p>1️⃣ Connect to <strong>ESP32-Setup</strong> Wi-Fi<br>2️⃣ Return here and press "Connect ESP32"</p>
     <form id="wifiForm">
       <input type="text" placeholder="Wi-Fi SSID" name="ssid" id="ssidInput" required><br>
       <input type="password" placeholder="Wi-Fi Password" name="pass" id="passInput" required><br>
       <button type="submit">Connect ESP32</button>
     </form>
-    <p id="setupMsg"></p>
+    <p id="setupMsg" style="margin-top: 1rem;"></p>
   </div>
 
   <div id="photoDiv" style="display: none;">
@@ -68,7 +68,17 @@
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
           body: `ssid=${encodeURIComponent(ssid)}&pass=${encodeURIComponent(pass)}`
         });
-        document.getElementById("setupMsg").innerText = "✅ Sent to ESP32. It should reboot and connect!";
+        if (response.ok) {
+          document.getElementById("setupMsg").innerText = "✅ Sent to ESP32. It should reboot and connect!";
+          // Store this setup on the server
+          await fetch("https://esp32-web-service.onrender.com/store", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ ssid, pass })
+          });
+        } else {
+          document.getElementById("setupMsg").innerText = "❌ Failed to send credentials.";
+        }
       } catch (err) {
         document.getElementById("setupMsg").innerText = "❌ Could not reach ESP32. Make sure you're connected to ESP32-Setup Wi-Fi.";
       }
