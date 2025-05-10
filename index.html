@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>ESP32 Camera Control</title>
+</head>
+<body>
+  <h2>📸 Take a Photo</h2>
+  <button onclick="takePhoto()">Capture</button>
+  <div id="output"></div>
+
+  <script>
+    async function takePhoto() {
+      try {
+        const res = await fetch("https://YOUR_RENDER_URL_HERE/ip");
+        const { ip } = await res.json();
+
+        if (!ip) throw new Error("No device found");
+
+        const img = new Image();
+        img.src = `http://${ip}/capture?${Date.now()}`;
+        img.onerror = () => {
+          document.getElementById('output').innerHTML = "⚠️ Failed to load image from device.";
+        };
+        document.getElementById('output').innerHTML = '';
+        document.getElementById('output').appendChild(img);
+      } catch (e) {
+        document.getElementById('output').innerHTML = "⚠️ Device not available.";
+        console.error(e);
+      }
+    }
+  </script>
+</body>
+</html>
