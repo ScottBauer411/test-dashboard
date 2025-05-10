@@ -18,8 +18,8 @@
     <h2>Setup Wi-Fi for ESP32</h2>
     <p>Connect to the <strong>ESP32-Setup</strong> Wi-Fi, then return to this page.</p>
     <form id="wifiForm">
-      <input type="text" placeholder="Wi-Fi SSID" name="ssid" required><br>
-      <input type="password" placeholder="Wi-Fi Password" name="pass" required><br>
+      <input type="text" placeholder="Wi-Fi SSID" name="ssid" id="ssidInput" required><br>
+      <input type="password" placeholder="Wi-Fi Password" name="pass" id="passInput" required><br>
       <button type="submit">Connect ESP32</button>
     </form>
     <p id="setupMsg"></p>
@@ -32,18 +32,27 @@
   </div>
 
   <script>
+    function rememberCredentials() {
+      const ssid = localStorage.getItem("esp32-ssid");
+      const pass = localStorage.getItem("esp32-pass");
+      if (ssid) document.getElementById("ssidInput").value = ssid;
+      if (pass) document.getElementById("passInput").value = pass;
+    }
+
     async function checkESP32() {
       try {
         const res = await fetch("https://esp32-web-service.onrender.com/ip");
         const data = await res.json();
         if (!data.ip || data.ip === "") {
           document.getElementById("setupDiv").style.display = "block";
+          rememberCredentials();
         } else {
           window.esp32IP = data.ip;
           document.getElementById("photoDiv").style.display = "block";
         }
       } catch (e) {
         document.getElementById("setupDiv").style.display = "block";
+        rememberCredentials();
       }
     }
 
@@ -51,6 +60,8 @@
       e.preventDefault();
       const ssid = e.target.ssid.value;
       const pass = e.target.pass.value;
+      localStorage.setItem("esp32-ssid", ssid);
+      localStorage.setItem("esp32-pass", pass);
       try {
         const response = await fetch("http://192.168.4.1/save", {
           method: "POST",
