@@ -11,7 +11,7 @@
   <script>
     async function takePhoto() {
       try {
-        const res = await fetch("https://YOUR_RENDER_URL_HERE/ip");
+        const res = await fetch("https://esp32-web-service.onrender.com/ip");
         const { ip } = await res.json();
 
         if (!ip) throw new Error("No device found");
