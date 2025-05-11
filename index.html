@@ -4,58 +4,59 @@
   <meta charset="UTF-8">
   <title>ESP32 Camera Control</title>
   <style>
-    body { font-family: sans-serif; text-align: center; padding: 2rem; }
-    input, button { padding: 0.5rem; margin: 0.5rem; width: 200px; }
-    #photo { max-width: 100%; margin-top: 2rem; }
+    body { font-family: sans-serif; padding: 2rem; text-align: center; }
+    input, button { padding: 0.5rem; margin: 0.5rem; font-size: 1rem; }
+    img { margin-top: 1rem; max-width: 100%; border: 1px solid #ccc; }
   </style>
 </head>
 <body>
-  <h1>📸 ESP32 Camera Setup</h1>
+  <h1>📸 ESP32 Camera</h1>
 
   <div id="setupDiv" style="display: none;">
-    <p>Connect to the <strong>ESP32-Setup</strong> Wi-Fi, then return here.</p>
+    <h2>Setup Wi-Fi</h2>
+    <p>Connect to the <strong>ESP32-Setup</strong> Wi-Fi. Then return here.</p>
     <form id="wifiForm">
-      <input id="ssidInput" name="ssid" placeholder="Wi-Fi SSID"><br>
-      <input id="passInput" name="pass" placeholder="Wi-Fi Password" type="password"><br>
-      <button type="submit">Save</button>
+      <input type="text" placeholder="Wi-Fi SSID" name="ssid" required><br>
+      <input type="password" placeholder="Wi-Fi Password" name="pass" required><br>
+      <button type="submit">Connect</button>
     </form>
     <p id="setupMsg"></p>
   </div>
 
-  <div id="photoDiv" style="display: none;">
-    <button id="snapBtn">📸 Take Photo</button><br>
-    <img id="photo" src="" alt="">
+  <div id="cameraDiv" style="display: none;">
+    <button id="snapBtn">📸 Take Photo</button>
+    <img id="photo" src="" alt="Camera output">
   </div>
 
   <script>
-    async function checkESP32() {
+    async function checkESP32IP() {
       try {
         const res = await fetch("https://esp32-web-service.onrender.com/ip");
-        const { ip } = await res.json();
-        if (ip) {
-          window.esp32IP = ip;
-          document.getElementById("photoDiv").style.display = "block";
+        const data = await res.json();
+        if (data.ip) {
+          window.esp32IP = data.ip;
+          document.getElementById("cameraDiv").style.display = "block";
         } else {
           document.getElementById("setupDiv").style.display = "block";
         }
-      } catch {
+      } catch (e) {
         document.getElementById("setupDiv").style.display = "block";
       }
     }
 
     document.getElementById("wifiForm").onsubmit = async (e) => {
       e.preventDefault();
-      const ssid = ssidInput.value;
-      const pass = passInput.value;
+      const ssid = e.target.ssid.value;
+      const pass = e.target.pass.value;
       try {
-        await fetch("http://192.168.4.1/save", {
+        const response = await fetch("http://192.168.4.1/save", {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
           body: `ssid=${encodeURIComponent(ssid)}&pass=${encodeURIComponent(pass)}`
         });
-        setupMsg.innerText = "✅ Sent. ESP32 will reboot and connect.";
-      } catch {
-        setupMsg.innerText = "❌ Could not reach ESP32.";
+        document.getElementById("setupMsg").innerText = "✅ Sent. Rebooting ESP32...";
+      } catch (err) {
+        document.getElementById("setupMsg").innerText = "❌ Could not reach ESP32. Make sure you're on the ESP32 Wi-Fi.";
       }
     };
 
@@ -64,7 +65,7 @@
       img.src = `http://${window.esp32IP}/capture?cacheBust=${Date.now()}`;
     };
 
-    checkESP32();
+    checkESP32IP();
   </script>
 </body>
 </html>
