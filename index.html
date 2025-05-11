@@ -29,20 +29,30 @@
   </div>
 
   <script>
-    async function checkESP32IP() {
-      try {
-        const res = await fetch("https://esp32-web-service.onrender.com/ip");
-        const data = await res.json();
-        if (data.ip) {
-          window.esp32IP = data.ip;
-          document.getElementById("cameraDiv").style.display = "block";
-        } else {
-          document.getElementById("setupDiv").style.display = "block";
-        }
-      } catch (e) {
+    async function checkESP32() {
+  try {
+    // Try local IP of ESP32 setup portal first
+    const localRes = await fetch("http://192.168.4.1/", { method: "GET", mode: "no-cors" });
+    document.getElementById("setupDiv").style.display = "block";
+    rememberCredentials();
+  } catch (e) {
+    // Try fetching IP from the server only if local portal isn't found
+    try {
+      const res = await fetch("https://esp32-web-service.onrender.com/ip");
+      const data = await res.json();
+      if (!data.ip || data.ip === "") {
         document.getElementById("setupDiv").style.display = "block";
+        rememberCredentials();
+      } else {
+        window.esp32IP = data.ip;
+        document.getElementById("photoDiv").style.display = "block";
       }
+    } catch {
+      document.getElementById("setupDiv").style.display = "block";
+      rememberCredentials();
     }
+  }
+}
 
     document.getElementById("wifiForm").onsubmit = async (e) => {
       e.preventDefault();
