@@ -1,27 +1,23 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>ESP32 Camera Control</title>
+  <meta charset="UTF-8">
+  <title>ESP32-CAM Dashboard</title>
   <style>
     body {
       font-family: sans-serif;
-      padding: 2rem;
       text-align: center;
-    }
-    input, button {
-      padding: 0.6rem;
-      margin: 0.5rem;
-      width: 220px;
+      padding: 2rem;
+      background: #f0f0f0;
     }
     button {
-      font-size: 1rem;
-      cursor: pointer;
+      font-size: 1.2rem;
+      padding: 0.7rem 1.5rem;
+      margin-bottom: 1rem;
     }
-    #photo {
-      margin-top: 2rem;
-      max-width: 90%;
-      border: 1px solid #ccc;
+    img {
+      max-width: 100%;
+      border: 2px solid #333;
     }
     #status {
       margin-top: 1rem;
@@ -30,48 +26,36 @@
   </style>
 </head>
 <body>
-  <h1>📸 ESP32 Camera Control</h1>
-  <div id="photoDiv" style="display: none;">
-    <button id="snapBtn">📸 Take Photo</button>
-    <div id="status"></div>
-    <img id="photo" src="" alt="ESP32 photo will appear here">
-  </div>
-
-  <div id="setupMsg">
-    <p>Waiting for ESP32 to connect...</p>
-  </div>
-
+  <h1>📸 ESP32-CAM Dashboard</h1>
+  <button onclick="capturePhoto()">Take Photo</button>
+  <div id="status"></div>
+  <br>
+  <img id="photo" src="" alt="Photo will appear here">
+  
   <script>
-    const renderURL = "https://esp32-web-service.onrender.com";
-    let esp32IP = "";
+    // Replace with your actual Render backend URL
+    const renderBaseURL = "https://esp32-web-service.onrender.com";
 
-    async function checkESP32() {
-      try {
-        const res = await fetch(`${renderURL}/ip`);
-        const data = await res.json();
-        if (data.ip) {
-          esp32IP = data.ip;
-          document.getElementById("setupMsg").style.display = "none";
-          document.getElementById("photoDiv").style.display = "block";
-        } else {
-          document.getElementById("setupMsg").innerHTML = "<p>❌ ESP32 not registered yet. Connect to Wi-Fi first.</p>";
-        }
-      } catch (err) {
-        document.getElementById("setupMsg").innerHTML = "<p>❌ Failed to contact server.</p>";
-      }
+    function capturePhoto() {
+      const status = document.getElementById("status");
+      status.innerText = "📤 Requesting ESP32 to capture photo...";
+
+      fetch(`${renderBaseURL}/trigger`, { method: "POST" })
+        .then(response => {
+          if (!response.ok) throw new Error("Trigger failed");
+          status.innerText = "⏳ Waiting for photo...";
+          return new Promise(resolve => setTimeout(resolve, 3000));
+        })
+        .then(() => {
+          const img = document.getElementById("photo");
+          img.src = `${renderBaseURL}/photo?ts=${Date.now()}`;
+          status.innerText = "✅ Photo captured!";
+        })
+        .catch(err => {
+          console.error(err);
+          status.innerText = "❌ Failed to contact server or ESP32.";
+        });
     }
-
-    document.getElementById("snapBtn").onclick = async () => {
-  try {
-    const res = await fetch("http://192.168.1.146/capture");
-    const text = await res.text();
-    alert(text);
-  } catch (err) {
-    alert("❌ Failed to reach ESP32. Make sure you're on the same Wi-Fi.");
-  }
-};
-
-    checkESP32();
   </script>
 </body>
 </html>
