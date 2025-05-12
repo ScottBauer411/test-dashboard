@@ -37,43 +37,52 @@
   </div>
 
   <script>
-    const RENDER_API_URL = "https://esp32-web-service.onrender.com/ip";
+  const RENDER_API_URL = "https://esp32-web-service.onrender.com/ip";
 
-    async function fetchESP32IP() {
-      try {
-        const res = await fetch(RENDER_API_URL);
-        const data = await res.json();
-        if (data.ip && data.ip !== "") {
-          console.log("✅ ESP32 IP: " + data.ip);
-          return data.ip;
-        } else {
-          console.log("❌ No IP returned");
-          return null;
-        }
-      } catch (e) {
-        console.error("Error fetching ESP32 IP:", e);
-        return null;
+  async function fetchESP32IP() {
+    try {
+      const res = await fetch(RENDER_API_URL);
+      const data = await res.json();
+      if (data.ip && data.ip !== "") {
+        console.log("✅ ESP32 IP: " + data.ip);
+        return data.ip;
       }
+    } catch (e) {
+      console.error("❌ Failed to fetch ESP32 IP:", e);
     }
+    return null;
+  }
 
-    async function initializeDashboard() {
-      const ip = await fetchESP32IP();
-      if (ip) {
-        window.esp32IP = ip;
-        document.getElementById("setupDiv").style.display = "none";
-        document.getElementById("photoDiv").style.display = "block";
-
-        document.getElementById("snapBtn").onclick = () => {
-          const img = document.getElementById("photo");
-          img.src = `http://${ip}/capture?cb=${Date.now()}`;
-        };
-      } else {
-        document.getElementById("setupDiv").style.display = "block";
-        document.getElementById("photoDiv").style.display = "none";
-      }
+  async function captureAndShowPhoto(ip) {
+    try {
+      const res = await fetch(`http://${ip}/capture`);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const img = document.getElementById("photo");
+      img.src = url;
+    } catch (err) {
+      console.error("❌ Capture failed:", err);
+      alert("Could not fetch image from ESP32. Make sure you're on the same Wi-Fi.");
     }
+  }
 
-    initializeDashboard();
-  </script>
+  async function initializeDashboard() {
+    const ip = await fetchESP32IP();
+    if (ip) {
+      window.esp32IP = ip;
+      document.getElementById("setupDiv").style.display = "none";
+      document.getElementById("photoDiv").style.display = "block";
+
+      document.getElementById("snapBtn").onclick = () => {
+        captureAndShowPhoto(ip);
+      };
+    } else {
+      document.getElementById("setupDiv").style.display = "block";
+      document.getElementById("photoDiv").style.display = "none";
+    }
+  }
+
+  initializeDashboard();
+</script>
 </body>
 </html>
