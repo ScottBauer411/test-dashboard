@@ -45,9 +45,7 @@
 
       try {
         // Step 1: Trigger ESP32 to capture + upload
-        const triggerURL = esp32IP
-          ? `http://${esp32IP}/capture`
-          : renderTriggerURL;
+        const triggerURL = renderTriggerURL;
 
         const res = await fetch(triggerURL);
         const text = await res.text();
