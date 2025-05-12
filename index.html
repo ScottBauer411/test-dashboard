@@ -2,74 +2,56 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>ESP32 Dashboard</title>
+  <title>ESP32 Camera Control</title>
   <style>
     body {
       font-family: sans-serif;
-      padding: 2rem;
       text-align: center;
+      padding: 2rem;
     }
-    button {
-      padding: 0.7rem 1.5rem;
-      font-size: 1.2rem;
-      margin-bottom: 1rem;
+    input, button {
+      font-size: 1rem;
+      padding: 0.5rem;
+      margin: 0.5rem;
     }
     img {
-      margin-top: 20px;
-      max-width: 100%;
-      border: 1px solid #ccc;
-    }
-    #status {
       margin-top: 1rem;
-      font-weight: bold;
+      max-width: 90%;
+      border: 2px solid #ccc;
     }
   </style>
 </head>
 <body>
   <h1>📸 ESP32 Camera Control</h1>
-  <button id="captureBtn">📷 Capture Photo</button>
-  <p id="status">Waiting for ESP32...</p>
-  <img id="photo" src="" alt="ESP32 photo will appear here" />
+  <button id="captureBtn">Take Photo</button>
+  <p id="status"></p>
+  <img id="photo" src="" alt="Photo will appear here" />
 
   <script>
-    const statusEl = document.getElementById("status");
-    const imgEl = document.getElementById("photo");
+    const renderURL = "https://esp32-web-service.onrender.com"; // Replace with your real URL
 
     document.getElementById("captureBtn").onclick = async () => {
-      statusEl.textContent = "Requesting ESP32 to take photo...";
+      const status = document.getElementById("status");
+      const photo = document.getElementById("photo");
+
+      status.textContent = "📡 Triggering ESP32...";
+      photo.src = "";
 
       try {
-        const triggerRes = await fetch("https://esp32-web-service.onrender.com/trigger", {
-          method: "POST"
-        });
+        const res = await fetch(`${renderURL}/trigger`, { method: "POST" });
+        const data = await res.json();
 
-        if (!triggerRes.ok) throw new Error("Trigger failed");
-
-        statusEl.textContent = "📡 Waiting for photo upload...";
-
-        // Poll for photo availability
-        const pollPhoto = async () => {
-          for (let i = 0; i < 15; i++) {
-            await new Promise(r => setTimeout(r, 1500));
-            const response = await fetch("https://esp32-web-service.onrender.com/photo.jpg", {
-              cache: "no-store"
-            });
-
-            if (response.ok) {
-              imgEl.src = "https://esp32-web-service.onrender.com/photo.jpg?cacheBust=" + Date.now();
-              statusEl.textContent = "✅ Photo captured!";
-              return;
-            }
-          }
-          statusEl.textContent = "❌ Timeout: ESP32 did not upload image.";
-        };
-
-        pollPhoto();
-
-      } catch (err) {
-        console.error(err);
-        statusEl.textContent = "❌ Failed to trigger ESP32.";
+        if (res.ok && data.status === "ok") {
+          const imageUrl = `${renderURL}/photo.jpg?cacheBust=${Date.now()}`;
+          status.textContent = "✅ Photo captured!";
+          photo.src = imageUrl;
+        } else {
+          status.textContent = "❌ Failed to trigger ESP32.";
+          console.error(data);
+        }
+      } catch (e) {
+        status.textContent = "❌ Error reaching server.";
+        console.error(e);
       }
     };
   </script>
