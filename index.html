@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>ESP32 Camera Control</title>
   <style>
     body {
@@ -25,9 +25,7 @@
   </style>
 </head>
 <body>
-
   <h1>📸 ESP32 Camera Control</h1>
-  <p>Make sure the ESP32 is powered on and has Wi-Fi configured.</p>
   <button id="snapBtn">📷 Take Photo</button>
   <p id="msg"></p>
   <img id="photo" src="" alt="ESP32 Photo" />
@@ -43,21 +41,21 @@
       img.src = "";
 
       try {
-        msg.innerText = "📡 Sending trigger to ESP32...";
+        msg.innerText = "📤 Asking ESP32 to take photo...";
         const res = await fetch(renderTriggerURL);
         const text = await res.text();
         console.log("Trigger response:", text);
 
-        if (!text.toLowerCase().includes("photo")) {
-          throw new Error("Unexpected response from ESP32");
+        if (!res.ok || !text.toLowerCase().includes("photo")) {
+          throw new Error("Unexpected response from trigger");
         }
 
         msg.innerText = "⏳ Waiting for image upload...";
-        await new Promise(r => setTimeout(r, 2000)); // Allow ESP32 to upload
+        await new Promise(r => setTimeout(r, 2000)); // delay for upload
 
-        const timestamp = Date.now(); // Prevent caching
+        const timestamp = Date.now();
         img.src = `${renderPhotoURL}?t=${timestamp}`;
-        msg.innerText = "✅ Photo loaded from server!";
+        msg.innerText = "✅ Photo loaded!";
       } catch (err) {
         console.error(err);
         msg.innerText = "❌ Failed to contact ESP32 or server.";
@@ -66,6 +64,5 @@
 
     document.getElementById("snapBtn").onclick = takePhoto;
   </script>
-
 </body>
 </html>
