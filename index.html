@@ -27,13 +27,12 @@
 <body>
 
   <h1>📸 ESP32 Camera Control</h1>
+  <p>Make sure the ESP32 is powered on and has Wi-Fi configured.</p>
   <button id="snapBtn">📷 Take Photo</button>
   <p id="msg"></p>
   <img id="photo" src="" alt="ESP32 Photo" />
 
   <script>
-    const esp32IP = localStorage.getItem("esp32-ip");
-    const renderUploadURL = "https://esp32-web-service.onrender.com/upload";
     const renderTriggerURL = "https://esp32-web-service.onrender.com/trigger";
     const renderPhotoURL = "https://esp32-web-service.onrender.com/photo";
 
@@ -44,24 +43,19 @@
       img.src = "";
 
       try {
-        // Step 1: Trigger ESP32 to capture + upload
-        const triggerURL = renderTriggerURL;
-
-        const res = await fetch(triggerURL);
+        msg.innerText = "📡 Sending trigger to ESP32...";
+        const res = await fetch(renderTriggerURL);
         const text = await res.text();
         console.log("Trigger response:", text);
 
-        // Optional: validate response content if needed
-        if (!text.includes("Photo")) {
+        if (!text.toLowerCase().includes("photo")) {
           throw new Error("Unexpected response from ESP32");
         }
 
-        // Step 2: Delay to allow upload
-        msg.innerText = "⏳ Waiting for ESP32 upload...";
-        await new Promise(r => setTimeout(r, 2000));
+        msg.innerText = "⏳ Waiting for image upload...";
+        await new Promise(r => setTimeout(r, 2000)); // Allow ESP32 to upload
 
-        // Step 3: Display image from server
-        const timestamp = Date.now(); // prevent caching
+        const timestamp = Date.now(); // Prevent caching
         img.src = `${renderPhotoURL}?t=${timestamp}`;
         msg.innerText = "✅ Photo loaded from server!";
       } catch (err) {
