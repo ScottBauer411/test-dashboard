@@ -4,28 +4,76 @@
   <meta charset="UTF-8">
   <title>ESP32 Camera Dashboard</title>
   <style>
-    body { font-family: sans-serif; padding: 2rem; text-align: center; }
-    button { padding: 10px 20px; font-size: 1rem; }
-    img { margin-top: 1rem; max-width: 100%; border: 1px solid #ccc; }
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      padding: 2rem;
+      background-color: #f4f4f4;
+    }
+    input, button {
+      padding: 0.6rem;
+      font-size: 1rem;
+      margin: 0.5rem;
+    }
+    #photo {
+      margin-top: 2rem;
+      max-width: 100%;
+      border: 1px solid #ccc;
+    }
   </style>
 </head>
 <body>
   <h1>📸 ESP32 Camera Control</h1>
-  <button id="snapBtn">Take Photo</button>
-  <div><img id="photo" alt="ESP32 capture will appear here"></div>
+
+  <div id="setupDiv" style="display: none;">
+    <h2>Waiting for ESP32 Setup</h2>
+    <p>Make sure the ESP32 has been connected to Wi-Fi using the captive portal. Once connected, its IP will be shown here automatically.</p>
+  </div>
+
+  <div id="photoDiv" style="display: none;">
+    <h2>Take a Photo</h2>
+    <button id="snapBtn">📷 Capture Photo</button>
+    <div><img id="photo" src="" alt="ESP32 photo will appear here"></div>
+  </div>
 
   <script>
-    document.getElementById("snapBtn").onclick = async () => {
-      const img = document.getElementById("photo");
-      img.src = "";
+    const RENDER_API_URL = "https://esp32-web-service.onrender.com/ip";
+
+    async function fetchESP32IP() {
       try {
-        const res = await fetch("https://esp32-web-service.onrender.com/capture");
-        const blob = await res.blob();
-        img.src = URL.createObjectURL(blob);
-      } catch {
-        alert("❌ Could not connect to ESP32.");
+        const res = await fetch(RENDER_API_URL);
+        const data = await res.json();
+        if (data.ip && data.ip !== "") {
+          console.log("✅ ESP32 IP: " + data.ip);
+          return data.ip;
+        } else {
+          console.log("❌ No IP returned");
+          return null;
+        }
+      } catch (e) {
+        console.error("Error fetching ESP32 IP:", e);
+        return null;
       }
-    };
+    }
+
+    async function initializeDashboard() {
+      const ip = await fetchESP32IP();
+      if (ip) {
+        window.esp32IP = ip;
+        document.getElementById("setupDiv").style.display = "none";
+        document.getElementById("photoDiv").style.display = "block";
+
+        document.getElementById("snapBtn").onclick = () => {
+          const img = document.getElementById("photo");
+          img.src = `http://${ip}/capture?cb=${Date.now()}`;
+        };
+      } else {
+        document.getElementById("setupDiv").style.display = "block";
+        document.getElementById("photoDiv").style.display = "none";
+      }
+    }
+
+    initializeDashboard();
   </script>
 </body>
 </html>
