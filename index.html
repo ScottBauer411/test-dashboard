@@ -62,25 +62,14 @@
     }
 
     document.getElementById("snapBtn").onclick = async () => {
-      const status = document.getElementById("status");
-      const photo = document.getElementById("photo");
-      status.textContent = "📤 Sending request...";
-      photo.src = "";
-
-      try {
-        const res = await fetch(`${renderURL}/trigger`, { method: "POST" });
-        const data = await res.json();
-
-        if (data.status === "ok") {
-          photo.src = `http://${esp32IP}/capture?cacheBust=${Date.now()}`;
-          status.textContent = "✅ Photo captured";
-        } else {
-          status.textContent = "❌ Failed to trigger ESP32";
-        }
-      } catch (err) {
-        status.textContent = "❌ Error reaching server";
-      }
-    };
+  try {
+    const res = await fetch("http://192.168.1.146/capture");
+    const text = await res.text();
+    alert(text);
+  } catch (err) {
+    alert("❌ Failed to reach ESP32. Make sure you're on the same Wi-Fi.");
+  }
+};
 
     checkESP32();
   </script>
