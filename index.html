@@ -2,92 +2,45 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>ESP32 Setup + Control</title>
+  <title>ESP32 Camera Dashboard</title>
   <style>
-    body { font-family: sans-serif; padding: 2rem; text-align: center; }
-    input { padding: 0.5rem; margin: 0.5rem; width: 200px; }
+    body { font-family: sans-serif; text-align: center; padding: 2rem; }
     button { padding: 0.5rem 1rem; font-size: 1rem; }
-    #photo { margin-top: 2rem; max-width: 100%; }
+    img { margin-top: 2rem; max-width: 100%; border: 1px solid #ccc; }
   </style>
 </head>
 <body>
-  <h1>📸 ESP32 Camera Control</h1>
-
-  <div id="setupDiv" style="display: none;">
-    <h2>Setup Wi-Fi for ESP32</h2>
-    <p>Connect to the <strong>ESP32-Setup</strong> Wi-Fi, then return to this page.</p>
-    <form id="wifiForm">
-      <input type="text" placeholder="Wi-Fi SSID" name="ssid" id="ssidInput" required><br>
-      <input type="password" placeholder="Wi-Fi Password" name="pass" id="passInput" required><br>
-      <button type="submit">Connect ESP32</button>
-    </form>
-    <p id="setupMsg"></p>
-  </div>
-
-  <div id="photoDiv" style="display: none;">
-    <h2>Take a Photo</h2>
-    <button id="snapBtn">📸 Take Photo</button>
-    <div><img id="photo" src="" alt="ESP32 photo will appear here"></div>
-  </div>
+  <h1>📸 ESP32 Camera Dashboard</h1>
+  <p id="status">Checking for device...</p>
+  <button id="snap" style="display:none;">📸 Take Photo</button>
+  <div><img id="photo" src="" alt=""></div>
 
   <script>
-    function rememberCredentials() {
-      const ssid = localStorage.getItem("esp32-ssid");
-      const pass = localStorage.getItem("esp32-pass");
-      if (ssid) document.getElementById("ssidInput").value = ssid;
-      if (pass) document.getElementById("passInput").value = pass;
-    }
-
-    async function checkESP32() {
+    async function pollForESP32() {
       try {
-        // Try local ESP32 setup portal first
-        await fetch("http://192.168.4.1/", { method: "GET", mode: "no-cors" });
-        document.getElementById("setupDiv").style.display = "block";
-        rememberCredentials();
-      } catch (e) {
-        // If not found, try loading saved IP from your backend
-        try {
-          const res = await fetch("https://esp32-web-service.onrender.com/ip");
-          const data = await res.json();
-          if (!data.ip || data.ip === "") {
-            document.getElementById("setupDiv").style.display = "block";
-            rememberCredentials();
-          } else {
-            window.esp32IP = data.ip;
-            document.getElementById("photoDiv").style.display = "block";
-          }
-        } catch {
-          document.getElementById("setupDiv").style.display = "block";
-          rememberCredentials();
+        const res = await fetch("https://esp32-web-service.onrender.com/ip");
+        const { ip } = await res.json();
+
+        if (ip) {
+          window.esp32IP = ip;
+          document.getElementById("status").textContent = `✅ Connected to ESP32 at ${ip}`;
+          document.getElementById("snap").style.display = "inline-block";
+        } else {
+          document.getElementById("status").textContent = "❌ ESP32 not connected. Waiting...";
+          setTimeout(pollForESP32, 3000);
         }
+      } catch {
+        document.getElementById("status").textContent = "❌ Failed to fetch ESP32 IP. Retrying...";
+        setTimeout(pollForESP32, 3000);
       }
     }
 
-    document.getElementById("wifiForm").onsubmit = async (e) => {
-      e.preventDefault();
-      const ssid = e.target.ssid.value;
-      const pass = e.target.pass.value;
-      localStorage.setItem("esp32-ssid", ssid);
-      localStorage.setItem("esp32-pass", pass);
-      try {
-        const response = await fetch("http://192.168.4.1/save", {
-          method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: `ssid=${encodeURIComponent(ssid)}&pass=${encodeURIComponent(pass)}`
-        });
-        document.getElementById("setupMsg").innerText = "✅ Sent to ESP32. It should reboot and connect!";
-      } catch (err) {
-        document.getElementById("setupMsg").innerText = "❌ Could not reach ESP32. Make sure you're connected to ESP32-Setup Wi-Fi.";
-      }
-    };
-
-    document.getElementById("snapBtn").onclick = async () => {
-      if (!window.esp32IP) return;
+    document.getElementById("snap").onclick = () => {
       const img = document.getElementById("photo");
       img.src = `http://${window.esp32IP}/capture?cacheBust=${Date.now()}`;
     };
 
-    checkESP32();
+    pollForESP32();
   </script>
 </body>
 </html>
