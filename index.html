@@ -2,56 +2,62 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ESP32 Camera Dashboard</title>
   <style>
-    body { font-family: sans-serif; padding: 2rem; text-align: center; }
-    button { font-size: 1.2rem; padding: 0.5rem 1rem; }
-    img { margin-top: 2rem; max-width: 100%; border: 1px solid #ccc; }
-    #status { margin-top: 1rem; font-weight: bold; }
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      padding: 2rem;
+      background: #f8f9fa;
+    }
+    button {
+      padding: 1rem 2rem;
+      font-size: 1.2rem;
+      margin-top: 1rem;
+    }
+    #photo {
+      margin-top: 2rem;
+      max-width: 100%;
+      border: 1px solid #ccc;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
   </style>
 </head>
 <body>
-  <h1>📸 ESP32 Camera Control</h1>
-
-  <input type="text" id="esp32-ip" placeholder="ESP32 IP (e.g., 192.168.1.146)" style="padding: 0.5rem; width: 250px;">
-  <br><br>
-  <button onclick="takePhoto()">📷 Take Photo</button>
-
-  <div id="status"></div>
-
-  <img id="latestPhoto" src="" alt="Photo will appear here" />
+  <h1>📷 ESP32 Camera Control</h1>
+  <p>
+    <button onclick="triggerESP32()">📸 Take Photo</button>
+  </p>
+  <p id="status">Ready.</p>
+  <img id="photo" src="" alt="Photo from ESP32 will appear here" />
 
   <script>
-    async function takePhoto() {
-      const ip = document.getElementById("esp32-ip").value.trim();
-      const status = document.getElementById("status");
-      const photo = document.getElementById("latestPhoto");
-
-      if (!ip) {
-        status.textContent = "❌ Please enter the ESP32 IP address.";
-        return;
-      }
-
-      status.textContent = "📡 Contacting ESP32...";
+    async function triggerESP32() {
+      const statusEl = document.getElementById("status");
+      const photoEl = document.getElementById("photo");
+      statusEl.textContent = "🔄 Triggering ESP32...";
+      photoEl.src = "";
 
       try {
-        const response = await fetch(`http://${ip}/capture`);
-        if (!response.ok) {
-          throw new Error(`ESP32 returned status ${response.status}`);
+        const res = await fetch("https://esp32-web-service.onrender.com/trigger", {
+          method: "POST"
+        });
+
+        const json = await res.json();
+        if (json.status === "ok") {
+          statusEl.textContent = "✅ Photo triggered, loading...";
+          // Delay before loading image
+          setTimeout(() => {
+            photoEl.src = `https://esp32-web-service.onrender.com/photo?cacheBust=${Date.now()}`;
+            statusEl.textContent = "📸 Photo loaded.";
+          }, 3000);
+        } else {
+          statusEl.textContent = `❌ Failed to contact ESP32: ${json.message}`;
         }
-
-        const text = await response.text();
-        status.textContent = text.includes("Photo") ? "✅ Photo captured & sent to server!" : "❌ Unexpected ESP32 response.";
-
-        // Small delay to allow server to process
-        setTimeout(() => {
-          const ts = new Date().getTime();
-          photo.src = `https://esp32-web-service.onrender.com/photo?cache=${ts}`;
-        }, 1500);
-
-      } catch (err) {
-        console.error(err);
-        status.textContent = "❌ Failed to contact ESP32 or server.";
+      } catch (e) {
+        statusEl.textContent = "❌ Failed to contact server or ESP32.";
+        console.error(e);
       }
     }
   </script>
