@@ -4,43 +4,28 @@
   <meta charset="UTF-8">
   <title>ESP32 Camera Dashboard</title>
   <style>
-    body { font-family: sans-serif; text-align: center; padding: 2rem; }
-    button { padding: 0.5rem 1rem; font-size: 1rem; }
-    img { margin-top: 2rem; max-width: 100%; border: 1px solid #ccc; }
+    body { font-family: sans-serif; padding: 2rem; text-align: center; }
+    button { padding: 10px 20px; font-size: 1rem; }
+    img { margin-top: 1rem; max-width: 100%; border: 1px solid #ccc; }
   </style>
 </head>
 <body>
-  <h1>📸 ESP32 Camera Dashboard</h1>
-  <p id="status">Checking for device...</p>
-  <button id="snap" style="display:none;">📸 Take Photo</button>
-  <div><img id="photo" src="" alt=""></div>
+  <h1>📸 ESP32 Camera Control</h1>
+  <button id="snapBtn">Take Photo</button>
+  <div><img id="photo" alt="ESP32 capture will appear here"></div>
 
   <script>
-    async function pollForESP32() {
-      try {
-        const res = await fetch("https://esp32-web-service.onrender.com/ip");
-        const { ip } = await res.json();
-
-        if (ip) {
-          window.esp32IP = ip;
-          document.getElementById("status").textContent = `✅ Connected to ESP32 at ${ip}`;
-          document.getElementById("snap").style.display = "inline-block";
-        } else {
-          document.getElementById("status").textContent = "❌ ESP32 not connected. Waiting...";
-          setTimeout(pollForESP32, 3000);
-        }
-      } catch {
-        document.getElementById("status").textContent = "❌ Failed to fetch ESP32 IP. Retrying...";
-        setTimeout(pollForESP32, 3000);
-      }
-    }
-
-    document.getElementById("snap").onclick = () => {
+    document.getElementById("snapBtn").onclick = async () => {
       const img = document.getElementById("photo");
-      img.src = `http://${window.esp32IP}/capture?cacheBust=${Date.now()}`;
+      img.src = "";
+      try {
+        const res = await fetch("https://esp32-web-service.onrender.com/capture");
+        const blob = await res.blob();
+        img.src = URL.createObjectURL(blob);
+      } catch {
+        alert("❌ Could not connect to ESP32.");
+      }
     };
-
-    pollForESP32();
   </script>
 </body>
 </html>
