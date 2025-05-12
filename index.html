@@ -6,54 +6,83 @@
   <style>
     body {
       font-family: sans-serif;
-      text-align: center;
       padding: 2rem;
+      text-align: center;
     }
     input, button {
-      font-size: 1rem;
-      padding: 0.5rem;
+      padding: 0.6rem;
       margin: 0.5rem;
+      width: 220px;
     }
-    img {
-      margin-top: 1rem;
+    button {
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    #photo {
+      margin-top: 2rem;
       max-width: 90%;
-      border: 2px solid #ccc;
+      border: 1px solid #ccc;
+    }
+    #status {
+      margin-top: 1rem;
+      font-weight: bold;
     }
   </style>
 </head>
 <body>
   <h1>📸 ESP32 Camera Control</h1>
-  <button id="captureBtn">Take Photo</button>
-  <p id="status"></p>
-  <img id="photo" src="" alt="Photo will appear here" />
+  <div id="photoDiv" style="display: none;">
+    <button id="snapBtn">📸 Take Photo</button>
+    <div id="status"></div>
+    <img id="photo" src="" alt="ESP32 photo will appear here">
+  </div>
+
+  <div id="setupMsg">
+    <p>Waiting for ESP32 to connect...</p>
+  </div>
 
   <script>
-    const renderURL = "https://esp32-web-service.onrender.com"; // Replace with your real URL
+    const renderURL = "https://esp32-web-service.onrender.com";
+    let esp32IP = "";
 
-    document.getElementById("captureBtn").onclick = async () => {
+    async function checkESP32() {
+      try {
+        const res = await fetch(`${renderURL}/ip`);
+        const data = await res.json();
+        if (data.ip) {
+          esp32IP = data.ip;
+          document.getElementById("setupMsg").style.display = "none";
+          document.getElementById("photoDiv").style.display = "block";
+        } else {
+          document.getElementById("setupMsg").innerHTML = "<p>❌ ESP32 not registered yet. Connect to Wi-Fi first.</p>";
+        }
+      } catch (err) {
+        document.getElementById("setupMsg").innerHTML = "<p>❌ Failed to contact server.</p>";
+      }
+    }
+
+    document.getElementById("snapBtn").onclick = async () => {
       const status = document.getElementById("status");
       const photo = document.getElementById("photo");
-
-      status.textContent = "📡 Triggering ESP32...";
+      status.textContent = "📤 Sending request...";
       photo.src = "";
 
       try {
         const res = await fetch(`${renderURL}/trigger`, { method: "POST" });
         const data = await res.json();
 
-        if (res.ok && data.status === "ok") {
-          const imageUrl = `${renderURL}/photo.jpg?cacheBust=${Date.now()}`;
-          status.textContent = "✅ Photo captured!";
-          photo.src = imageUrl;
+        if (data.status === "ok") {
+          photo.src = `http://${esp32IP}/capture?cacheBust=${Date.now()}`;
+          status.textContent = "✅ Photo captured";
         } else {
-          status.textContent = "❌ Failed to trigger ESP32.";
-          console.error(data);
+          status.textContent = "❌ Failed to trigger ESP32";
         }
-      } catch (e) {
-        status.textContent = "❌ Error reaching server.";
-        console.error(e);
+      } catch (err) {
+        status.textContent = "❌ Error reaching server";
       }
     };
+
+    checkESP32();
   </script>
 </body>
 </html>
