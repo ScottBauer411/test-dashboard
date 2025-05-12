@@ -1,65 +1,79 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ESP32 Camera Dashboard</title>
+  <meta charset="UTF-8">
+  <title>ESP32 Camera Control</title>
   <style>
     body {
       font-family: sans-serif;
       text-align: center;
-      padding: 2rem;
-      background: #f8f9fa;
+      padding-top: 2rem;
     }
     button {
-      padding: 1rem 2rem;
-      font-size: 1.2rem;
-      margin-top: 1rem;
+      padding: 0.7rem 1.5rem;
+      font-size: 1.1rem;
     }
-    #photo {
+    img {
       margin-top: 2rem;
-      max-width: 100%;
+      max-width: 90%;
       border: 1px solid #ccc;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+    #msg {
+      margin-top: 1rem;
+      color: red;
     }
   </style>
 </head>
 <body>
-  <h1>📷 ESP32 Camera Control</h1>
-  <p>
-    <button onclick="triggerESP32()">📸 Take Photo</button>
-  </p>
-  <p id="status">Ready.</p>
-  <img id="photo" src="" alt="Photo from ESP32 will appear here" />
+
+  <h1>📸 ESP32 Camera Control</h1>
+  <button id="snapBtn">📷 Take Photo</button>
+  <p id="msg"></p>
+  <img id="photo" src="" alt="ESP32 Photo" />
 
   <script>
-    async function triggerESP32() {
-      const statusEl = document.getElementById("status");
-      const photoEl = document.getElementById("photo");
-      statusEl.textContent = "🔄 Triggering ESP32...";
-      photoEl.src = "";
+    const esp32IP = localStorage.getItem("esp32-ip");
+    const renderUploadURL = "https://esp32-web-service.onrender.com/upload";
+    const renderTriggerURL = "https://esp32-web-service.onrender.com/trigger";
+    const renderPhotoURL = "https://esp32-web-service.onrender.com/photo";
+
+    async function takePhoto() {
+      const msg = document.getElementById("msg");
+      const img = document.getElementById("photo");
+      msg.innerText = "";
+      img.src = "";
 
       try {
-        const res = await fetch("https://esp32-web-service.onrender.com/trigger", {
-          method: "POST"
-        });
+        // Step 1: Trigger ESP32 to capture + upload
+        const triggerURL = esp32IP
+          ? `http://${esp32IP}/capture`
+          : renderTriggerURL;
 
-        const json = await res.json();
-        if (json.status === "ok") {
-          statusEl.textContent = "✅ Photo triggered, loading...";
-          // Delay before loading image
-          setTimeout(() => {
-            photoEl.src = `https://esp32-web-service.onrender.com/photo?cacheBust=${Date.now()}`;
-            statusEl.textContent = "📸 Photo loaded.";
-          }, 3000);
-        } else {
-          statusEl.textContent = `❌ Failed to contact ESP32: ${json.message}`;
+        const res = await fetch(triggerURL);
+        const text = await res.text();
+        console.log("Trigger response:", text);
+
+        // Optional: validate response content if needed
+        if (!text.includes("Photo")) {
+          throw new Error("Unexpected response from ESP32");
         }
-      } catch (e) {
-        statusEl.textContent = "❌ Failed to contact server or ESP32.";
-        console.error(e);
+
+        // Step 2: Delay to allow upload
+        msg.innerText = "⏳ Waiting for ESP32 upload...";
+        await new Promise(r => setTimeout(r, 2000));
+
+        // Step 3: Display image from server
+        const timestamp = Date.now(); // prevent caching
+        img.src = `${renderPhotoURL}?t=${timestamp}`;
+        msg.innerText = "✅ Photo loaded from server!";
+      } catch (err) {
+        console.error(err);
+        msg.innerText = "❌ Failed to contact ESP32 or server.";
       }
     }
+
+    document.getElementById("snapBtn").onclick = takePhoto;
   </script>
+
 </body>
 </html>
