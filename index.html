@@ -2,37 +2,23 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>ESP32 Camera Control</title>
+  <title>📸 Smart Pi Camera</title>
   <style>
-    body {
-      font-family: sans-serif;
-      text-align: center;
-      padding-top: 2rem;
-    }
-    button {
-      padding: 0.7rem 1.5rem;
-      font-size: 1.1rem;
-    }
-    img {
-      margin-top: 2rem;
-      max-width: 90%;
-      border: 1px solid #ccc;
-    }
-    #msg {
-      margin-top: 1rem;
-      color: red;
-    }
+    body { font-family: sans-serif; text-align: center; padding-top: 2rem; }
+    button { padding: 0.7rem 1.5rem; font-size: 1.1rem; }
+    img { margin-top: 2rem; max-width: 90%; border: 1px solid #ccc; }
+    #msg { margin-top: 1rem; color: red; }
   </style>
 </head>
 <body>
-  <h1>📸 ESP32 Camera Control</h1>
+  <h1>📸 Smart Pi Camera</h1>
   <button id="snapBtn">📷 Take Photo</button>
   <p id="msg"></p>
-  <img id="photo" src="" alt="ESP32 Photo" />
+  <img id="photo" src="" alt="Smart Pi Photo" />
 
   <script>
-    const renderTriggerURL = "https://esp32-web-service.onrender.com/trigger";
-    const renderPhotoURL = "https://esp32-web-service.onrender.com/photo";
+    const triggerURL = "https://esp32-web-service.onrender.com/trigger";
+    const photoURL = "https://esp32-web-service.onrender.com/photo";
 
     async function takePhoto() {
       const msg = document.getElementById("msg");
@@ -41,24 +27,22 @@
       img.src = "";
 
       try {
-        msg.innerText = "📤 Asking ESP32 to take photo...";
-        const res = await fetch(renderTriggerURL);
+        msg.innerText = "📤 Triggering Pi to take photo...";
+        const res = await fetch(triggerURL);
         const text = await res.text();
         console.log("Trigger response:", text);
 
         if (!res.ok || !text.toLowerCase().includes("photo")) {
-          throw new Error("Unexpected response from trigger");
+          throw new Error("Bad trigger response");
         }
 
-        msg.innerText = "⏳ Waiting for image upload...";
-        await new Promise(r => setTimeout(r, 2000)); // delay for upload
-
-        const timestamp = Date.now();
-        img.src = `${renderPhotoURL}?t=${timestamp}`;
+        msg.innerText = "⏳ Waiting for upload...";
+        await new Promise(r => setTimeout(r, 2000));
+        img.src = `${photoURL}?t=${Date.now()}`;
         msg.innerText = "✅ Photo loaded!";
       } catch (err) {
         console.error(err);
-        msg.innerText = "❌ Failed to contact ESP32 or server.";
+        msg.innerText = "❌ Could not contact Pi or server.";
       }
     }
 
