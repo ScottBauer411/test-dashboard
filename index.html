@@ -1,52 +1,26 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <title>📸 Smart Pi Camera</title>
-  <style>
-    body { font-family: sans-serif; text-align: center; padding-top: 2rem; }
-    button { padding: 0.7rem 1.5rem; font-size: 1.1rem; }
-    img { margin-top: 2rem; max-width: 90%; border: 1px solid #ccc; }
-    #msg { margin-top: 1rem; color: red; }
-  </style>
+  <title>XIAO Camera Trigger</title>
 </head>
 <body>
-  <h1>📸 Smart Pi Camera</h1>
-  <button id="snapBtn">📷 Take Photo</button>
-  <p id="msg"></p>
-  <img id="photo" src="" alt="Smart Pi Photo" />
+  <h1>📸 Trigger My XIAO Camera</h1>
+  <button onclick="trigger()">Take Photo</button>
+  <p id="status">Waiting...</p>
 
   <script>
-    const triggerURL = "https://esp32-web-service.onrender.com/trigger";
-    const photoURL = "https://esp32-web-service.onrender.com/photo";
+    const deviceId = "xiao123";
 
-    async function takePhoto() {
-      const msg = document.getElementById("msg");
-      const img = document.getElementById("photo");
-      msg.innerText = "";
-      img.src = "";
-
-      try {
-        msg.innerText = "📤 Triggering Pi to take photo...";
-        const res = await fetch(triggerURL);
-        const text = await res.text();
-        console.log("Trigger response:", text);
-
-        if (!res.ok || !text.toLowerCase().includes("photo")) {
-          throw new Error("Bad trigger response");
-        }
-
-        msg.innerText = "⏳ Waiting for upload...";
-        await new Promise(r => setTimeout(r, 2000));
-        img.src = `${photoURL}?t=${Date.now()}`;
-        msg.innerText = "✅ Photo loaded!";
-      } catch (err) {
-        console.error(err);
-        msg.innerText = "❌ Could not contact Pi or server.";
-      }
+    function trigger() {
+      fetch(`/trigger_photo?device_id=${deviceId}`, { method: "POST" })
+        .then(res => {
+          if (res.ok) {
+            document.getElementById("status").textContent = "Trigger sent!";
+          } else {
+            document.getElementById("status").textContent = "Error triggering device.";
+          }
+        });
     }
-
-    document.getElementById("snapBtn").onclick = takePhoto;
   </script>
 </body>
 </html>
