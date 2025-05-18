@@ -29,7 +29,7 @@
 
   <script>
     const deviceId = "xiao123";
-    const apiBase = "https://esp32-web-service.onrender.com"; // <-- Replace with your backend URL
+    const apiBase = "https://esp32-web-service.onrender.com"; // ✅ Your Render backend
 
     function trigger() {
       fetch(`${apiBase}/trigger_photo?device_id=${deviceId}`, {
@@ -38,6 +38,7 @@
       .then(res => {
         if (res.ok) {
           document.getElementById("status").textContent = "✅ Trigger sent! Waiting for image...";
+          pollForImage();
         } else {
           document.getElementById("status").textContent = "❌ Error triggering device.";
         }
@@ -45,6 +46,24 @@
       .catch(() => {
         document.getElementById("status").textContent = "⚠️ Could not connect to backend.";
       });
+    }
+
+    function pollForImage() {
+      const pollInterval = setInterval(() => {
+        fetch(`${apiBase}/latest_image_url`)
+          .then(res => res.json())
+          .then(data => {
+            if (data.url) {
+              clearInterval(pollInterval);
+              const img = document.createElement("img");
+              img.src = `${apiBase}${data.url}`;
+              img.style.maxWidth = "300px";
+              img.style.marginTop = "20px";
+              document.body.appendChild(img);
+              document.getElementById("status").textContent = "📸 Image received!";
+            }
+          });
+      }, 2000);
     }
   </script>
 
