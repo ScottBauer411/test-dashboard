@@ -1,26 +1,52 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
   <title>XIAO Camera Trigger</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      margin-top: 100px;
+    }
+    button {
+      font-size: 18px;
+      padding: 12px 24px;
+      cursor: pointer;
+    }
+    #status {
+      margin-top: 20px;
+      font-size: 16px;
+      color: #444;
+    }
+  </style>
 </head>
 <body>
+
   <h1>📸 Trigger My XIAO Camera</h1>
   <button onclick="trigger()">Take Photo</button>
-  <p id="status">Waiting...</p>
+  <p id="status">Waiting for action...</p>
 
   <script>
     const deviceId = "xiao123";
+    const apiBase = "https://esp32-web-service.onrender.com"; // <-- Replace with your backend URL
 
     function trigger() {
-      fetch(`/trigger_photo?device_id=${deviceId}`, { method: "POST" })
-        .then(res => {
-          if (res.ok) {
-            document.getElementById("status").textContent = "Trigger sent!";
-          } else {
-            document.getElementById("status").textContent = "Error triggering device.";
-          }
-        });
+      fetch(`${apiBase}/trigger_photo?device_id=${deviceId}`, {
+        method: "POST"
+      })
+      .then(res => {
+        if (res.ok) {
+          document.getElementById("status").textContent = "✅ Trigger sent! Waiting for image...";
+        } else {
+          document.getElementById("status").textContent = "❌ Error triggering device.";
+        }
+      })
+      .catch(() => {
+        document.getElementById("status").textContent = "⚠️ Could not connect to backend.";
+      });
     }
   </script>
+
 </body>
 </html>
