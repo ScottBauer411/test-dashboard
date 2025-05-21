@@ -1,71 +1,89 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>XIAO Camera Trigger</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>XIAO Camera Dashboard</title>
   <style>
     body {
       font-family: sans-serif;
       text-align: center;
-      margin-top: 100px;
+      background-color: #f0f0f0;
+      padding: 2rem;
     }
     button {
-      font-size: 18px;
-      padding: 12px 24px;
+      padding: 1rem 2rem;
+      font-size: 1.2rem;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 8px;
       cursor: pointer;
+      margin-bottom: 2rem;
     }
-    #status {
-      margin-top: 20px;
-      font-size: 16px;
-      color: #444;
+    button:hover {
+      background-color: #0056b3;
+    }
+    img {
+      max-width: 100%;
+      max-height: 400px;
+      border-radius: 8px;
+      border: 2px solid #ccc;
+    }
+    .status {
+      margin-top: 1rem;
+      font-weight: bold;
     }
   </style>
 </head>
 <body>
-
-  <h1>📸 Trigger My XIAO Camera</h1>
-  <button onclick="trigger()">Take Photo</button>
-  <p id="status">Waiting for action...</p>
+  <h1>XIAO ESP32S3 Remote Camera</h1>
+  <button onclick="triggerPhoto()">📸 Trigger Photo</button>
+  <div class="status" id="status">Waiting for image...</div>
+  <img id="latestImage" src="" alt="No image yet"/>
 
   <script>
-    const deviceId = "xiao123";
-    const apiBase = "https://esp32-web-service.onrender.com"; // ✅ Your Render backend
+    const serverBase = "https://esp32-web-service.onrender.com";
 
-    function trigger() {
-      fetch(`${apiBase}/trigger_photo?device_id=${deviceId}`, {
-        method: "POST"
-      })
-      .then(res => {
-        if (res.ok) {
-          document.getElementById("status").textContent = "✅ Trigger sent! Waiting for image...";
-          pollForImage();
+    async function triggerPhoto() {
+      document.getElementById("status").innerText = "📨 Trigger sent! Waiting for image...";
+      try {
+        const res = await fetch(`${serverBase}/trigger_photo?device_id=xiao123`, {
+          method: "POST"
+        });
+        const text = await res.text();
+        console.log("Trigger response:", text);
+        pollForImage();
+      } catch (err) {
+        console.error("Failed to trigger:", err);
+        document.getElementById("status").innerText = "❌ Trigger failed.";
+      }
+    }
+
+    async function pollForImage(retries = 0) {
+      if (retries > 10) {
+        document.getElementById("status").innerText = "⚠️ Timed out waiting for image.";
+        return;
+      }
+
+      try {
+        const res = await fetch(`${serverBase}/latest_image_url`);
+        const data = await res.json();
+        if (data.url) {
+          const img = document.getElementById("latestImage");
+          // Force fresh reload with timestamp to avoid caching
+          img.src = `${serverBase}${data.url}?t=${Date.now()}`;
+          document.getElementById("status").innerText = "✅ Image received!";
         } else {
-          document.getElementById("status").textContent = "❌ Error triggering device.";
+          setTimeout(() => pollForImage(retries + 1), 2000);
         }
-      })
-      .catch(() => {
-        document.getElementById("status").textContent = "⚠️ Could not connect to backend.";
-      });
+      } catch {
+        setTimeout(() => pollForImage(retries + 1), 2000);
+      }
     }
 
-    function pollForImage() {
-      const pollInterval = setInterval(() => {
-        fetch(`${apiBase}/latest_image_url`)
-          .then(res => res.json())
-          .then(data => {
-            if (data.url) {
-              clearInterval(pollInterval);
-              const img = document.createElement("img");
-              img.src = `${apiBase}${data.url}`;
-              img.style.maxWidth = "300px";
-              img.style.marginTop = "20px";
-              document.body.appendChild(img);
-              document.getElementById("status").textContent = "📸 Image received!";
-            }
-          });
-      }, 2000);
-    }
+    // Optionally load the latest image on first visit
+    pollForImage();
   </script>
-
 </body>
 </html>
