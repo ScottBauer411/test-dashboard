@@ -44,7 +44,7 @@
 
   <script>
     const serverBase = "https://esp32-web-service.onrender.com";
-    let lastImageURL = null;
+    let lastImageFilename = null;
 
     async function triggerPhoto() {
       document.getElementById("status").innerText = "📨 Trigger sent! Waiting for image...";
@@ -53,7 +53,7 @@
           method: "POST"
         });
         const text = await res.text();
-        console.log("Trigger response:", text);
+        console.log("✅ Trigger response:", text);
         pollForNewImage(0);
       } catch (err) {
         console.error("❌ Trigger failed:", err);
@@ -61,7 +61,7 @@
       }
     }
 
-    async function pollForNewImage(retries = 0) {
+    async function pollForNewImage(retries) {
       if (retries > 15) {
         document.getElementById("status").innerText = "⚠️ Timed out waiting for new image.";
         return;
@@ -70,24 +70,28 @@
       try {
         const res = await fetch(`${serverBase}/latest_image_url`);
         const data = await res.json();
-        console.log("Latest image response:", data);
 
-        if (data.url && data.url !== lastImageURL) {
-          lastImageURL = data.url;
-          const img = document.getElementById("latestImage");
-          img.src = `${serverBase}${data.url}?t=${Date.now()}`;
-          document.getElementById("status").innerText = "✅ Image received!";
-        } else {
-          setTimeout(() => pollForNewImage(retries + 1), 2000);
+        if (data.url) {
+          const filename = data.url.split("/").pop();
+          if (filename !== lastImageFilename) {
+            lastImageFilename = filename;
+            const img = document.getElementById("latestImage");
+            img.src = `${serverBase}${data.url}?t=${Date.now()}`;
+            document.getElementById("status").innerText = "✅ New image received!";
+            return;
+          }
         }
+
+        // Retry after 2 seconds
+        setTimeout(() => pollForNewImage(retries + 1), 2000);
       } catch (err) {
-        console.warn("Retrying image fetch:", err);
+        console.warn("⚠️ Error during image polling:", err);
         setTimeout(() => pollForNewImage(retries + 1), 2000);
       }
     }
 
-    // Optionally fetch latest image on first load
-    pollForNewImage();
+    // Load most recent image on first load
+    pollForNewImage(0);
   </script>
 </body>
 </html>
