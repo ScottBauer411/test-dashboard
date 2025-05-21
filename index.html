@@ -44,6 +44,7 @@
 
   <script>
     const serverBase = "https://esp32-web-service.onrender.com";
+    let lastImageURL = null;
 
     async function triggerPhoto() {
       document.getElementById("status").innerText = "📨 Trigger sent! Waiting for image...";
@@ -53,37 +54,40 @@
         });
         const text = await res.text();
         console.log("Trigger response:", text);
-        pollForImage();
+        pollForNewImage(0);
       } catch (err) {
-        console.error("Failed to trigger:", err);
+        console.error("❌ Trigger failed:", err);
         document.getElementById("status").innerText = "❌ Trigger failed.";
       }
     }
 
-    async function pollForImage(retries = 0) {
-      if (retries > 10) {
-        document.getElementById("status").innerText = "⚠️ Timed out waiting for image.";
+    async function pollForNewImage(retries = 0) {
+      if (retries > 15) {
+        document.getElementById("status").innerText = "⚠️ Timed out waiting for new image.";
         return;
       }
 
       try {
         const res = await fetch(`${serverBase}/latest_image_url`);
         const data = await res.json();
-        if (data.url) {
+        console.log("Latest image response:", data);
+
+        if (data.url && data.url !== lastImageURL) {
+          lastImageURL = data.url;
           const img = document.getElementById("latestImage");
-          // Force fresh reload with timestamp to avoid caching
           img.src = `${serverBase}${data.url}?t=${Date.now()}`;
           document.getElementById("status").innerText = "✅ Image received!";
         } else {
-          setTimeout(() => pollForImage(retries + 1), 2000);
+          setTimeout(() => pollForNewImage(retries + 1), 2000);
         }
-      } catch {
-        setTimeout(() => pollForImage(retries + 1), 2000);
+      } catch (err) {
+        console.warn("Retrying image fetch:", err);
+        setTimeout(() => pollForNewImage(retries + 1), 2000);
       }
     }
 
-    // Optionally load the latest image on first visit
-    pollForImage();
+    // Optionally fetch latest image on first load
+    pollForNewImage();
   </script>
 </body>
 </html>
